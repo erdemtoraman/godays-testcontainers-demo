@@ -27,7 +27,7 @@ func (s UserServiceConfig) StartDocker(ctx context.Context, networkName string) 
 			},
 			Env:          s.json(),
 			ExposedPorts: []string{s.Port},
-			WaitingFor:   waitG.ForLog("running service"),
+			WaitingFor:   waitG.ForListeningPort(nat.Port(s.Port)),
 		},
 		Started: true,
 	})
@@ -44,4 +44,3 @@ func (s UserServiceConfig) StartDocker(ctx context.Context, networkName string) 
 func (s UserServiceConfig) json() map[string]string {
 	return map[string]string{"POSTGRES_URL": s.PostgresURL, "PORT": s.Port}
 }
-

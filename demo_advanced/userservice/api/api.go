@@ -13,27 +13,21 @@ type User struct {
 	Name string `json:"name" db:"name"`
 }
 
-
+//noinspection ALL
 func PostUser(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user User
-		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+		json.NewDecoder(r.Body).Decode(&user)
 		if res := db.QueryRow(`INSERT INTO users (name) VALUES ($1) RETURNING *`, user.Name); res.Scan(&user.ID, &user.Name) != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(http.StatusCreated)
-		if err := json.NewEncoder(w).Encode(user); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
+		json.NewEncoder(w).Encode(user)
 	}
 }
 
+//noinspection ALL
 func GetUser(db *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id, _ := strconv.Atoi(mux.Vars(r)["id"])
@@ -42,10 +36,7 @@ func GetUser(db *sql.DB) http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		if err := json.NewEncoder(w).Encode(user); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
 		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(user)
 	}
 }
