@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
-	waitG "github.com/testcontainers/testcontainers-go/wait"
+	"github.com/testcontainers/testcontainers-go/wait"
 	"log"
 	"os"
 	"path/filepath"
@@ -16,7 +16,7 @@ type UserServiceConfig struct {
 	Port        string
 }
 
-func (s UserServiceConfig) StartDocker(ctx context.Context, networkName string) (internalURL, mappedURL string) {
+func (s UserServiceConfig) StartContainer(ctx context.Context, networkName string) (internalURL, mappedURL string) {
 	dir, _ := os.Getwd()
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
@@ -27,7 +27,7 @@ func (s UserServiceConfig) StartDocker(ctx context.Context, networkName string) 
 			},
 			Env:          s.json(),
 			ExposedPorts: []string{s.Port},
-			WaitingFor:   waitG.ForListeningPort(nat.Port(s.Port)),
+			WaitingFor:   wait.ForListeningPort(nat.Port(s.Port)),
 		},
 		Started: true,
 	})

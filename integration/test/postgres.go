@@ -30,7 +30,7 @@ func (p PostgresConfig) url(port nat.Port) string {
 	return fmt.Sprintf("postgres://%s:%s@localhost:%s/%s?sslmode=disable", p.User, p.Password, port.Port(), p.DB)
 }
 
-func (p PostgresConfig) Start(ctx context.Context, networkName string) (internalURL, mappedURL string) {
+func (p PostgresConfig) StartContainer(ctx context.Context, networkName string) (internalURL, mappedURL string) {
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
 			Image:        "postgres:latest",

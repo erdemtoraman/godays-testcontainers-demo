@@ -11,7 +11,6 @@ import (
 	"os"
 )
 
-
 func main() {
 	db, err := sql.Open("postgres", os.Getenv("POSTGRES_URL"))
 	if err != nil {
@@ -28,8 +27,6 @@ func main() {
 	r.NewRoute().Path("/users").Methods(http.MethodPost).HandlerFunc(api.PostUser(db))
 	r.NewRoute().Path("/users/{id:[0-9]+}").Methods(http.MethodGet).HandlerFunc(api.GetUser(db))
 
-
-
-	http.ListenAndServe(":" + os.Getenv("PORT"), r)
+	http.ListenAndServe(":"+os.Getenv("PORT"), r)
 
 }

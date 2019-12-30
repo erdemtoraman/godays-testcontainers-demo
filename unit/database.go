@@ -1,4 +1,4 @@
-package demo_simple
+package unit
 
 import "github.com/jmoiron/sqlx"
 

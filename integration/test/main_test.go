@@ -7,7 +7,6 @@ import (
 	"fmt"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/testcontainers/testcontainers-go"
 	"io"
 	"log"
@@ -16,25 +15,25 @@ import (
 	"testing"
 )
 
-const networkName = "integration-test-network"
+var _ctx = context.Background()
 
 var userServiceURL, ticketServiceURL string
 
-func init() {
-	provider, err := testcontainers.ProviderDocker.GetProvider()
+func TestMain(m *testing.M) {
+	os.Chdir("..")
+
+	const networkName = "integration-test-network"
+
+	provider, err := testcontainers.NewDockerProvider()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if _, err = provider.GetNetwork(context.Background(), testcontainers.NetworkRequest{Name: networkName, Driver: "bridge"}); err != nil {
-		if _, err := provider.CreateNetwork(context.Background(), testcontainers.NetworkRequest{Name: networkName, Driver: "bridge"}); err != nil {
+	if _, err = provider.GetNetwork(_ctx, testcontainers.NetworkRequest{Name: networkName, Driver: "bridge"}); err != nil {
+		if _, err := provider.CreateNetwork(_ctx, testcontainers.NetworkRequest{Name: networkName, Driver: "bridge"}); err != nil {
 			log.Fatal(err)
 		}
 	}
-}
-
-func TestMain(m *testing.M) {
-	os.Chdir("..")
 
 	postgresConfig := PostgresConfig{
 		Password: "password",
@@ -43,13 +42,14 @@ func TestMain(m *testing.M) {
 		Port:     "5432",
 	}
 
-	postgresInternal, mappedPostgres := postgresConfig.Start(context.Background(), networkName)
+	postgresInternal, mappedPostgres := postgresConfig.StartContainer(_ctx, networkName)
 	log.Println("postgres running at: ", mappedPostgres)
-	internalUser, mappedUser := UserServiceConfig{PostgresURL: postgresInternal, Port: "8080"}.StartDocker(context.Background(), networkName)
+
+	internalUser, mappedUser := UserServiceConfig{PostgresURL: postgresInternal, Port: "8080"}.StartContainer(_ctx, networkName)
 
 	log.Println("user service running at: ", mappedUser)
 
-	_, ticketServiceURL = TicketServiceConfig{UserServiceURL: internalUser, Port: "8080"}.StartDocker(context.Background(), networkName)
+	_, ticketServiceURL = TicketServiceConfig{UserServiceURL: internalUser, Port: "8080"}.StartContainer(_ctx, networkName)
 
 	log.Println("ticket service running at: ", mappedUser)
 
@@ -77,12 +77,12 @@ func Test_Integrations(t *testing.T) {
 	var createdUser User
 	t.Run("create and get a user", func(t *testing.T) {
 		resp, _ := http.Post(userServiceURL+"/users", "application/json", structToJsonReader(User{Name: "berliner"}))
-		require.NoError(t, responseToStruct(resp.Body, &createdUser))
+		responseToStruct(resp, &createdUser)
 		assert.Equal(t, "berliner", createdUser.Name)
 
 		var getUser User
 		resp, _ = http.Get(fmt.Sprintf("%s/users/%d", userServiceURL, createdUser.ID))
-		require.NoError(t, responseToStruct(resp.Body, &getUser))
+		responseToStruct(resp, &getUser)
 		assert.Equal(t, createdUser, getUser)
 	})
 
@@ -91,12 +91,12 @@ func Test_Integrations(t *testing.T) {
 		var ticket struct {
 			ID string `json:"id"`
 		}
-		require.NoError(t, responseToStruct(resp.Body, &ticket))
+		responseToStruct(resp, &ticket)
 		assert.Equal(t, "berliner", createdUser.Name)
 
 		var getTicket Ticket
 		resp, _ = http.Get(fmt.Sprintf("%s/tickets/%s", ticketServiceURL, ticket.ID))
-		require.NoError(t, responseToStruct(resp.Body, &getTicket))
+		responseToStruct(resp, &getTicket)
 		assert.Equal(t, createdUser, getTicket.User)
 		assert.Equal(t, ticket.ID, getTicket.ID)
 		assert.Equal(t, "dogs of berlin", getTicket.Movie)
@@ -111,7 +111,10 @@ func structToJsonReader(v interface{}) io.Reader {
 	return bytes.NewReader(b)
 }
 
-func responseToStruct(body io.ReadCloser, v interface{}) error {
-	defer body.Close()
-	return json.NewDecoder(body).Decode(v)
+func responseToStruct(resp *http.Response, v interface{}) {
+	defer resp.Body.Close()
+	if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
+		panic(err)
+	}
+
 }

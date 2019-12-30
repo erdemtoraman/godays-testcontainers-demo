@@ -57,7 +57,6 @@ func (w *waitForSql) WaitUntilReady(ctx context.Context, target wait.StrategyTar
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-
 			if _, err := db.ExecContext(ctx, "SELECT 1"); err != nil {
 				continue
 			}

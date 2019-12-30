@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
-	waitG "github.com/testcontainers/testcontainers-go/wait"
+	"github.com/testcontainers/testcontainers-go/wait"
 	"log"
 	"os"
 	"path/filepath"
@@ -16,7 +16,7 @@ type TicketServiceConfig struct {
 	Port           string
 }
 
-func (t TicketServiceConfig) StartDocker(ctx context.Context, networkName string) (internalURL, mappedURL string) {
+func (t TicketServiceConfig) StartContainer(ctx context.Context, networkName string) (internalURL, mappedURL string) {
 	dir, _ := os.Getwd()
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
@@ -25,7 +25,7 @@ func (t TicketServiceConfig) StartDocker(ctx context.Context, networkName string
 			NetworkAliases: map[string][]string{networkName: {"ticket-service"}},
 			Env:            t.env(),
 			ExposedPorts:   []string{t.Port},
-			WaitingFor:     waitG.ForListeningPort(nat.Port(t.Port)),
+			WaitingFor:     wait.ForListeningPort(nat.Port(t.Port)),
 		},
 		Started: true,
 	})
