@@ -18,7 +18,7 @@ import (
 
 var (
 	_ctx  = context.Background()
-	_repo Repo
+	_repo UserRepo
 	_conn *sqlx.DB
 
 	containerPort    nat.Port = "5432"
@@ -43,15 +43,15 @@ func TestMain(m *testing.M) {
 		log.Fatal("map:", err)
 	}
 
-	url := fmt.Sprintf("postgres://user:pass@localhost:%s/ourservice?sslmode=disable", mappedPort.Port())
-	log.Println(url)
-	connection, err := sqlx.Connect("postgres", url)
+	connection, err := sqlx.Connect("postgres", fmt.Sprintf("postgres://user:pass@localhost:%s/ourservice?sslmode=disable", mappedPort.Port()))
 	if err != nil {
 		log.Fatal("connect:", err)
 	}
 	_conn = connection
 
-	runMigrations(_conn)
+	if err := runMigrations(_conn); err != nil {
+		log.Fatal("runMigrations", err)
+	}
 
 	_repo = NewRepo(_conn)
 	os.Exit(m.Run())
@@ -71,24 +71,31 @@ func TestRepoImp_CreateUser(t *testing.T) {
 }
 
 func TestRepoImp_GetUsers(t *testing.T) {
-	truncateDB()
-	user, err := _repo.CreateUser("username")
-	require.NoError(t, err)
+	t.Run("get single user", func(t *testing.T) {
+		truncateDB()
+		user, err := _repo.CreateUser("username")
+		require.NoError(t, err)
 
-	getUser, err := _repo.GetUserByID(user.ID)
-	require.NoError(t, err)
-	assert.Equal(t, user, getUser)
+		getUser, err := _repo.GetUserByID(user.ID)
+		require.NoError(t, err)
+		assert.Equal(t, user, getUser)
+	})
 
-	for i := 0; i < 10; i++ {
-		_repo.CreateUser(strconv.Itoa(i))
-	}
+	t.Run("get all users", func(t *testing.T) {
+		truncateDB()
 
-	users, err := _repo.GetAllUsers()
-	require.NoError(t, err)
-	assert.Len(t, users, 11, "10 in for loop + 1 in the beginning")
+		for i := 0; i < 10; i++ {
+			_, err := _repo.CreateUser(strconv.Itoa(i))
+			require.NoError(t, err)
+		}
+		users, err := _repo.GetAllUsers()
+		require.NoError(t, err)
+		assert.Len(t, users, 10)
+	})
 
 }
 
+//noinspection SqlResolve
 func truncateDB() {
 	_, err := _conn.Exec("TRUNCATE users")
 	if err != nil {
