@@ -5,7 +5,7 @@ import (
 	"demo-end2end/wait"
 	"fmt"
 	"github.com/docker/go-connections/nat"
-	"github.com/testcontainers/testcontainers-go"
+	tc "github.com/testcontainers/testcontainers-go"
 
 	"log"
 	"strings"
@@ -32,9 +32,9 @@ func (p PostgresConfig) urlFromPort(port nat.Port) string {
 }
 
 func (p PostgresConfig) StartContainer(ctx context.Context, networkName string) (internalURL, mappedURL string) {
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        "postgres:latest",
+	container, err := tc.GenericContainer(ctx, tc.GenericContainerRequest{
+		ContainerRequest: tc.ContainerRequest{
+			Image:        "postgres",
 			ExposedPorts: []string{p.Port.Port()},
 			Env:          p.env(),
 			Networks:     []string{networkName},

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/docker/go-connections/nat"
-	"github.com/testcontainers/testcontainers-go"
+	tc "github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"log"
 	"net/http"
@@ -19,9 +19,9 @@ type TicketServiceConfig struct {
 
 func (t TicketServiceConfig) StartContainer(ctx context.Context, networkName string) (internalURL, mappedURL string) {
 	dir, _ := os.Getwd()
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: testcontainers.ContainerRequest{
-			FromDockerfile: testcontainers.FromDockerfile{Context: filepath.Join(dir, "ticketservice")},
+	container, err := tc.GenericContainer(ctx, tc.GenericContainerRequest{
+		ContainerRequest: tc.ContainerRequest{
+			FromDockerfile: tc.FromDockerfile{Context: filepath.Join(dir, "ticketservice")},
 			Networks:       []string{networkName},
 			NetworkAliases: map[string][]string{networkName: {"ticket-service"}},
 			Env:            t.env(),

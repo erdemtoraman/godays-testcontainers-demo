@@ -7,7 +7,7 @@ import (
 	"fmt"
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
-	"github.com/testcontainers/testcontainers-go"
+	tc "github.com/testcontainers/testcontainers-go"
 	"io"
 	"log"
 	"net/http"
@@ -21,9 +21,9 @@ var _userServiceURL, _ticketServiceURL string
 func TestMain(m *testing.M) {
 	os.Chdir("..")
 
-	var network = testcontainers.NetworkRequest{Name: "integration-test-network", Driver: "bridge"}
+	var network = tc.NetworkRequest{Name: "integration-test-network", Driver: "bridge"}
 
-	provider, err := testcontainers.NewDockerProvider()
+	provider, err := tc.NewDockerProvider()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -75,7 +75,7 @@ type Ticket struct {
 func Test_Integrations(t *testing.T) {
 	var createdUser User
 	t.Run("create and get a user", func(t *testing.T) {
-		resp, _ := http.Post(_userServiceURL+"/users", "application/json", structToJsonReader(User{Name: "berliner"}))
+		resp, _ := http.Post(_userServiceURL+"/users", "application/json", jsonReader(User{Name: "berliner"}))
 		responseToStruct(resp, &createdUser)
 		assert.Equal(t, "berliner", createdUser.Name)
 
@@ -86,12 +86,14 @@ func Test_Integrations(t *testing.T) {
 	})
 
 	t.Run("create a ticket", func(t *testing.T) {
-		resp, _ := http.Post(_ticketServiceURL+"/tickets", "application/json", structToJsonReader(TicketPost{Movie: "dogs of berlin", UserID: createdUser.ID}))
+		resp, _ := http.Post(
+			_ticketServiceURL+"/tickets",
+			"application/json",
+			jsonReader(TicketPost{Movie: "dogs of berlin", UserID: createdUser.ID}))
 		var ticket struct {
 			ID string `json:"id"`
 		}
 		responseToStruct(resp, &ticket)
-		assert.Equal(t, "berliner", createdUser.Name)
 
 		var getTicket Ticket
 		resp, _ = http.Get(fmt.Sprintf("%s/tickets/%s", _ticketServiceURL, ticket.ID))
@@ -102,7 +104,7 @@ func Test_Integrations(t *testing.T) {
 	})
 }
 
-func structToJsonReader(v interface{}) io.Reader {
+func jsonReader(v interface{}) io.Reader {
 	b, err := json.Marshal(v)
 	if err != nil {
 		panic(err)

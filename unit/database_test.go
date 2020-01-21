@@ -24,6 +24,7 @@ var (
 func TestMain(m *testing.M) {
 	log.Println("Starting postgres container...")
 	containerPort := nat.Port("5432/tcp")
+	log.Println("a")
 	postgres, err := tc.GenericContainer(context.Background(),
 		tc.GenericContainerRequest{
 			ContainerRequest: tc.ContainerRequest{

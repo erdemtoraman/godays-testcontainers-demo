@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/docker/go-connections/nat"
-	"github.com/testcontainers/testcontainers-go"
+	tc "github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"log"
 	"os"
@@ -18,9 +18,9 @@ type UserServiceConfig struct {
 
 func (s UserServiceConfig) StartContainer(ctx context.Context, networkName string) (internalURL, mappedURL string) {
 	dir, _ := os.Getwd()
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: testcontainers.ContainerRequest{
-			FromDockerfile: testcontainers.FromDockerfile{Context: filepath.Join(dir, "userservice")},
+	container, err := tc.GenericContainer(ctx, tc.GenericContainerRequest{
+		ContainerRequest: tc.ContainerRequest{
+			FromDockerfile: tc.FromDockerfile{Context: filepath.Join(dir, "userservice")},
 			Networks:       []string{networkName},
 			NetworkAliases: map[string][]string{
 				networkName: {"user-service"},
