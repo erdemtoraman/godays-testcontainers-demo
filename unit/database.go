@@ -16,27 +16,27 @@ func NewRepo(conn *sqlx.DB) *userRepo {
 }
 
 //noinspection ALL
-func (r *userRepo) CreateUser(name string) (User, error) {
-	var user User
-	err := r.conn.Get(&user, "INSERT INTO users(name) VALUES ($1) RETURNING *", name)
-	return user, err
+func (r *userRepo) CreateUser(name string) (user User, err error) {
+	err = r.conn.Get(&user, "INSERT INTO users(name) VALUES ($1) RETURNING *", name)
+	return
 }
 
 //noinspection ALL
-func (r *userRepo) GetUserByID(id int) (User, error) {
-	var user User
-	err := r.conn.Get(&user, "SELECT * FROM  users WHERE  id = $1", id)
-	return user, err
+func (r *userRepo) GetUserByID(id int) (user User, err error) {
+	err = r.conn.Get(&user, "SELECT * FROM  users WHERE  id = $1", id)
+	return
 }
 
 //noinspection ALL
-func (r *userRepo) GetAllUsers() ([]User, error) {
-	var users []User
-	err := r.conn.Select(&users, "SELECT * FROM  users") // should be: .Select instead of .Get
-	return users, err
+func (r *userRepo) GetAllUsers() (users []User, err error) {
+	err = r.conn.Select(&users, "SELECT * FROM  users") // should be: .Select instead of .Get
+	return
 }
 
+//noinspection ALL
 func runMigrations(conn *sqlx.DB) error {
-	_, err := conn.Exec("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY,  name TEXT NOT NULL UNIQUE)")
+	_, err := conn.Exec(`
+		CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY,  name TEXT NOT NULL UNIQUE)
+	`)
 	return err
 }

@@ -38,7 +38,7 @@ func TestMain(m *testing.M) {
 		Password: "password",
 		User:     "postgres",
 		DB:       "userservice",
-		Port:     "5432",
+		Port:     "5432/tcp",
 	}
 
 	postgresInternal, mappedPostgres := postgresConfig.StartContainer(_ctx, network.Name)

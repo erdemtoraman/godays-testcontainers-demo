@@ -8,7 +8,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/testcontainers/testcontainers-go"
+	tc "github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"log"
 	"os"
@@ -17,31 +17,35 @@ import (
 )
 
 var (
-	_ctx  = context.Background()
 	_repo *userRepo
 	_conn *sqlx.DB
 )
 
 func TestMain(m *testing.M) {
 	log.Println("Starting postgres container...")
-	containerPort := nat.Port("5432")
-	postgres, err := testcontainers.GenericContainer(_ctx, testcontainers.GenericContainerRequest{
-		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        "postgres",
-			ExposedPorts: []string{containerPort.Port()},
-			Env:          map[string]string{"POSTGRES_PASSWORD": "pass", "POSTGRES_USER": "user"},
-			WaitingFor:   wait.ForListeningPort(containerPort),
-		},
-		Started: true,
-	})
+	containerPort := nat.Port("5432/tcp")
+	postgres, err := tc.GenericContainer(context.Background(),
+		tc.GenericContainerRequest{
+			ContainerRequest: tc.ContainerRequest{
+				Image:        "postgres",
+				ExposedPorts: []string{containerPort.Port()},
+				Env: map[string]string{
+					"POSTGRES_PASSWORD": "pass",
+					"POSTGRES_USER":     "user",
+				},
+				WaitingFor: wait.ForListeningPort(containerPort),
+			},
+			Started: true, // auto-start the container
+		})
 	if err != nil {
 		log.Fatal("start:", err)
 	}
-	mappedPort, err := postgres.MappedPort(_ctx, containerPort)
+	mappedPort, err := postgres.MappedPort(context.Background(), containerPort)
 	if err != nil {
 		log.Fatal("map:", err)
 	}
-	postgresURL := fmt.Sprintf("postgres://user:pass@localhost:%s?sslmode=disable", mappedPort.Port())
+	postgresURLTemplate := "postgres://user:pass@localhost:%s?sslmode=disable"
+	postgresURL := fmt.Sprintf(postgresURLTemplate, mappedPort.Port())
 	log.Printf("Postgres container started, running at:  %s\n", postgresURL)
 
 	_conn, err = sqlx.Connect("postgres", postgresURL)
@@ -50,7 +54,7 @@ func TestMain(m *testing.M) {
 	}
 
 	if err := runMigrations(_conn); err != nil {
-		log.Fatal("runMigrations", err)
+		log.Fatal("runMigrations:", err)
 	}
 
 	_repo = NewRepo(_conn)
@@ -97,8 +101,7 @@ func TestRepoImp_GetUsers(t *testing.T) {
 
 //noinspection SqlResolve
 func truncateDB() {
-	_, err := _conn.Exec("TRUNCATE users")
-	if err != nil {
+	if _, err := _conn.Exec("TRUNCATE users"); err != nil {
 		log.Fatalf("Cannot clear db: %v", err)
 	}
 }

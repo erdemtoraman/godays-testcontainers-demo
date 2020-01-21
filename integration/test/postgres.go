@@ -15,7 +15,7 @@ type PostgresConfig struct {
 	Password string
 	User     string
 	DB       string
-	Port     string
+	Port     nat.Port
 }
 
 func (p PostgresConfig) env() map[string]string {
@@ -23,11 +23,11 @@ func (p PostgresConfig) env() map[string]string {
 		"POSTGRES_PASSWORD": p.Password,
 		"POSTGRES_USER":     p.User,
 		"POSTGRES_DB":       p.DB,
-		"POSTGRES_PORT":     p.Port,
+		"POSTGRES_PORT":     p.Port.Port(),
 	}
 }
 
-func (p PostgresConfig) url(port nat.Port) string {
+func (p PostgresConfig) urlFromPort(port nat.Port) string {
 	return fmt.Sprintf("postgres://%s:%s@localhost:%s/%s?sslmode=disable", p.User, p.Password, port.Port(), p.DB)
 }
 
@@ -35,13 +35,15 @@ func (p PostgresConfig) StartContainer(ctx context.Context, networkName string) 
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
 			Image:        "postgres:latest",
-			ExposedPorts: []string{p.Port},
+			ExposedPorts: []string{p.Port.Port()},
 			Env:          p.env(),
 			Networks:     []string{networkName},
 			NetworkAliases: map[string][]string{
 				networkName: {"user-service-postgres"},
 			},
-			WaitingFor: wait.ForSQL(nat.Port(p.Port), "postgres", p.url),
+			WaitingFor: wait.ForSQL{
+				UrlFromPort: p.urlFromPort, Port: p.Port, Driver: "postgres",
+			},
 		},
 		Started: true,
 	})
@@ -53,5 +55,5 @@ func (p PostgresConfig) StartContainer(ctx context.Context, networkName string) 
 	if err != nil {
 		log.Fatal(err)
 	}
-	return strings.Replace(p.url(nat.Port(p.Port)), "@localhost:", fmt.Sprintf("@%s:", "user-service-postgres"), 1), p.url(mappedPort)
+	return strings.Replace(p.urlFromPort(nat.Port(p.Port)), "@localhost:", "@user-service-postgres:", 1), p.urlFromPort(mappedPort)
 }
