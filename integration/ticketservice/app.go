@@ -21,7 +21,7 @@ type Ticket struct {
 	User  User   `json:"user"`
 }
 
-type newTicket struct {
+type ticketDB struct {
 	UserID int    `json:"user_id"`
 	Movie  string `json:"movie"`
 }
@@ -35,9 +35,12 @@ var (
 func main() {
 
 	r := mux.NewRouter().StrictSlash(true)
-
+	r.NewRoute().Path("/health").Methods(http.MethodGet).HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte(`{"running": true}`))
+		w.WriteHeader(http.StatusOK)
+	})
 	r.NewRoute().Path("/tickets").Methods(http.MethodPost).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		var body newTicket
+		var body ticketDB
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -56,7 +59,7 @@ func main() {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-		ticket := load.(newTicket)
+		ticket := load.(ticketDB)
 
 		resp, err := http.Get(fmt.Sprintf("%s/users/%d", userServiceBaseURL, ticket.UserID))
 		if err != nil {

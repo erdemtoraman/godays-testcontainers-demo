@@ -2,12 +2,6 @@ package unit
 
 import "github.com/jmoiron/sqlx"
 
-type UserRepo interface {
-	CreateUser(name string) (User, error)
-	GetUserByID(id int) (User, error)
-	GetAllUsers() ([]User, error)
-}
-
 type User struct {
 	ID   int    `db:"id"`
 	Name string `db:"name"`
@@ -17,7 +11,7 @@ type userRepo struct {
 	conn *sqlx.DB
 }
 
-func NewRepo(conn *sqlx.DB) UserRepo {
+func NewRepo(conn *sqlx.DB) *userRepo {
 	return &userRepo{conn: conn}
 }
 

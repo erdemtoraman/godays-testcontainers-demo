@@ -25,7 +25,7 @@ func (s UserServiceConfig) StartContainer(ctx context.Context, networkName strin
 			NetworkAliases: map[string][]string{
 				networkName: {"user-service"},
 			},
-			Env:          s.json(),
+			Env:          s.env(),
 			ExposedPorts: []string{s.Port},
 			WaitingFor:   wait.ForListeningPort(nat.Port(s.Port)),
 		},
@@ -41,6 +41,6 @@ func (s UserServiceConfig) StartContainer(ctx context.Context, networkName strin
 	return fmt.Sprintf("http://%s:%s", "user-service", s.Port), fmt.Sprintf("http://localhost:%s", mappedPort.Port())
 }
 
-func (s UserServiceConfig) json() map[string]string {
+func (s UserServiceConfig) env() map[string]string {
 	return map[string]string{"POSTGRES_URL": s.PostgresURL, "PORT": s.Port}
 }

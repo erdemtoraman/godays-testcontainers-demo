@@ -18,36 +18,36 @@ import (
 
 var (
 	_ctx  = context.Background()
-	_repo UserRepo
+	_repo *userRepo
 	_conn *sqlx.DB
-
-	containerPort    nat.Port = "5432"
-	containerRequest          = testcontainers.GenericContainerRequest{
-		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        "postgres",
-			ExposedPorts: []string{containerPort.Port()},
-			Env:          map[string]string{"POSTGRES_PASSWORD": "pass", "POSTGRES_USER": "user", "POSTGRES_DB": "ourservice"},
-			WaitingFor:   wait.ForListeningPort("5432"),
-		},
-		Started: true,
-	}
 )
 
 func TestMain(m *testing.M) {
-	container, err := testcontainers.GenericContainer(_ctx, containerRequest)
+	log.Println("Starting postgres container...")
+	containerPort := nat.Port("5432")
+	postgres, err := testcontainers.GenericContainer(_ctx, testcontainers.GenericContainerRequest{
+		ContainerRequest: testcontainers.ContainerRequest{
+			Image:        "postgres",
+			ExposedPorts: []string{containerPort.Port()},
+			Env:          map[string]string{"POSTGRES_PASSWORD": "pass", "POSTGRES_USER": "user"},
+			WaitingFor:   wait.ForListeningPort(containerPort),
+		},
+		Started: true,
+	})
 	if err != nil {
 		log.Fatal("start:", err)
 	}
-	mappedPort, err := container.MappedPort(_ctx, containerPort)
+	mappedPort, err := postgres.MappedPort(_ctx, containerPort)
 	if err != nil {
 		log.Fatal("map:", err)
 	}
+	postgresURL := fmt.Sprintf("postgres://user:pass@localhost:%s?sslmode=disable", mappedPort.Port())
+	log.Printf("Postgres container started, running at:  %s\n", postgresURL)
 
-	connection, err := sqlx.Connect("postgres", fmt.Sprintf("postgres://user:pass@localhost:%s/ourservice?sslmode=disable", mappedPort.Port()))
+	_conn, err = sqlx.Connect("postgres", postgresURL)
 	if err != nil {
 		log.Fatal("connect:", err)
 	}
-	_conn = connection
 
 	if err := runMigrations(_conn); err != nil {
 		log.Fatal("runMigrations", err)

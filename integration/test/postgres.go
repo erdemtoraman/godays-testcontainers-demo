@@ -2,10 +2,11 @@ package test
 
 import (
 	"context"
+	"demo-end2end/wait"
 	"fmt"
 	"github.com/docker/go-connections/nat"
 	"github.com/testcontainers/testcontainers-go"
-	"godays-testcontainers-demo/test/wait"
+
 	"log"
 	"strings"
 )
@@ -17,7 +18,7 @@ type PostgresConfig struct {
 	Port     string
 }
 
-func (p PostgresConfig) json() map[string]string {
+func (p PostgresConfig) env() map[string]string {
 	return map[string]string{
 		"POSTGRES_PASSWORD": p.Password,
 		"POSTGRES_USER":     p.User,
@@ -35,8 +36,7 @@ func (p PostgresConfig) StartContainer(ctx context.Context, networkName string) 
 		ContainerRequest: testcontainers.ContainerRequest{
 			Image:        "postgres:latest",
 			ExposedPorts: []string{p.Port},
-			Cmd:          []string{"postgres", "-c", "fsync=off"},
-			Env:          p.json(),
+			Env:          p.env(),
 			Networks:     []string{networkName},
 			NetworkAliases: map[string][]string{
 				networkName: {"user-service-postgres"},

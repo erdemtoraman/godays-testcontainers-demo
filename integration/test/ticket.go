@@ -7,6 +7,7 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 )
@@ -25,7 +26,8 @@ func (t TicketServiceConfig) StartContainer(ctx context.Context, networkName str
 			NetworkAliases: map[string][]string{networkName: {"ticket-service"}},
 			Env:            t.env(),
 			ExposedPorts:   []string{t.Port},
-			WaitingFor:     wait.ForListeningPort(nat.Port(t.Port)),
+			WaitingFor: wait.ForHTTP("/health").WithPort(nat.Port(t.Port)).
+				WithStatusCodeMatcher(func(status int) bool { return status == http.StatusOK }),
 		},
 		Started: true,
 	})

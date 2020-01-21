@@ -1,4 +1,4 @@
-module godays-testcontainers-demo/test
+module demo-end2end
 
 go 1.13
 

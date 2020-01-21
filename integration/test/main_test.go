@@ -16,21 +16,20 @@ import (
 )
 
 var _ctx = context.Background()
-
-var userServiceURL, ticketServiceURL string
+var _userServiceURL, _ticketServiceURL string
 
 func TestMain(m *testing.M) {
 	os.Chdir("..")
 
-	const networkName = "integration-test-network"
+	var network = testcontainers.NetworkRequest{Name: "integration-test-network", Driver: "bridge"}
 
 	provider, err := testcontainers.NewDockerProvider()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if _, err = provider.GetNetwork(_ctx, testcontainers.NetworkRequest{Name: networkName, Driver: "bridge"}); err != nil {
-		if _, err := provider.CreateNetwork(_ctx, testcontainers.NetworkRequest{Name: networkName, Driver: "bridge"}); err != nil {
+	if _, err := provider.GetNetwork(_ctx, network); err != nil {
+		if _, err := provider.CreateNetwork(_ctx, network); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -42,18 +41,18 @@ func TestMain(m *testing.M) {
 		Port:     "5432",
 	}
 
-	postgresInternal, mappedPostgres := postgresConfig.StartContainer(_ctx, networkName)
+	postgresInternal, mappedPostgres := postgresConfig.StartContainer(_ctx, network.Name)
 	log.Println("postgres running at: ", mappedPostgres)
 
-	internalUser, mappedUser := UserServiceConfig{PostgresURL: postgresInternal, Port: "8080"}.StartContainer(_ctx, networkName)
+	internalUser, mappedUser := UserServiceConfig{PostgresURL: postgresInternal, Port: "8080"}.StartContainer(_ctx, network.Name)
 
 	log.Println("user service running at: ", mappedUser)
 
-	_, ticketServiceURL = TicketServiceConfig{UserServiceURL: internalUser, Port: "8080"}.StartContainer(_ctx, networkName)
+	_, _ticketServiceURL = TicketServiceConfig{UserServiceURL: internalUser, Port: "8080"}.StartContainer(_ctx, network.Name)
 
-	log.Println("ticket service running at: ", mappedUser)
+	log.Println("ticket service running at: ", _ticketServiceURL)
 
-	userServiceURL = mappedUser
+	_userServiceURL = mappedUser
 
 	os.Exit(m.Run())
 }
@@ -76,18 +75,18 @@ type Ticket struct {
 func Test_Integrations(t *testing.T) {
 	var createdUser User
 	t.Run("create and get a user", func(t *testing.T) {
-		resp, _ := http.Post(userServiceURL+"/users", "application/json", structToJsonReader(User{Name: "berliner"}))
+		resp, _ := http.Post(_userServiceURL+"/users", "application/json", structToJsonReader(User{Name: "berliner"}))
 		responseToStruct(resp, &createdUser)
 		assert.Equal(t, "berliner", createdUser.Name)
 
 		var getUser User
-		resp, _ = http.Get(fmt.Sprintf("%s/users/%d", userServiceURL, createdUser.ID))
+		resp, _ = http.Get(fmt.Sprintf("%s/users/%d", _userServiceURL, createdUser.ID))
 		responseToStruct(resp, &getUser)
 		assert.Equal(t, createdUser, getUser)
 	})
 
 	t.Run("create a ticket", func(t *testing.T) {
-		resp, _ := http.Post(ticketServiceURL+"/tickets", "application/json", structToJsonReader(TicketPost{Movie: "dogs of berlin", UserID: createdUser.ID}))
+		resp, _ := http.Post(_ticketServiceURL+"/tickets", "application/json", structToJsonReader(TicketPost{Movie: "dogs of berlin", UserID: createdUser.ID}))
 		var ticket struct {
 			ID string `json:"id"`
 		}
@@ -95,7 +94,7 @@ func Test_Integrations(t *testing.T) {
 		assert.Equal(t, "berliner", createdUser.Name)
 
 		var getTicket Ticket
-		resp, _ = http.Get(fmt.Sprintf("%s/tickets/%s", ticketServiceURL, ticket.ID))
+		resp, _ = http.Get(fmt.Sprintf("%s/tickets/%s", _ticketServiceURL, ticket.ID))
 		responseToStruct(resp, &getTicket)
 		assert.Equal(t, createdUser, getTicket.User)
 		assert.Equal(t, ticket.ID, getTicket.ID)
