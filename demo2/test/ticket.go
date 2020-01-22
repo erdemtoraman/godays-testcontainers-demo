@@ -1,7 +1,6 @@
 package test
 
 import (
-	"context"
 	"fmt"
 	"github.com/docker/go-connections/nat"
 	tc "github.com/testcontainers/testcontainers-go"
@@ -17,7 +16,7 @@ type TicketServiceConfig struct {
 	Port           nat.Port
 }
 
-func (t TicketServiceConfig) StartContainer(ctx context.Context, networkName string) (internalURL, mappedURL string) {
+func (t TicketServiceConfig) StartContainer(networkName string) (internalURL, mappedURL string) {
 	dir, _ := os.Getwd()
 	container, err := tc.GenericContainer(ctx, tc.GenericContainerRequest{
 		ContainerRequest: tc.ContainerRequest{

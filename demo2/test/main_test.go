@@ -2,7 +2,6 @@ package test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	_ "github.com/lib/pq"
@@ -15,7 +14,6 @@ import (
 	"testing"
 )
 
-var _ctx = context.Background()
 var _userServiceURL, _ticketServiceURL string
 
 func TestMain(m *testing.M) {
@@ -28,8 +26,8 @@ func TestMain(m *testing.M) {
 		log.Fatal(err)
 	}
 
-	if _, err := provider.GetNetwork(_ctx, network); err != nil {
-		if _, err := provider.CreateNetwork(_ctx, network); err != nil {
+	if _, err := provider.GetNetwork(ctx, network); err != nil {
+		if _, err := provider.CreateNetwork(ctx, network); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -42,16 +40,16 @@ func TestMain(m *testing.M) {
 	}
 
 	postgresInternal, mappedPostgres := postgresConfig.
-		StartContainer(_ctx, network.Name)
+		StartContainer(network.Name)
 	log.Println("postgres running at: ", mappedPostgres)
 
 	internalUser, mappedUser := UserServiceConfig{PostgresURL: postgresInternal, Port: "8080/tcp"}.
-		StartContainer(_ctx, network.Name)
+		StartContainer(network.Name)
 
 	log.Println("user service running at: ", mappedUser)
 
 	_, _ticketServiceURL = TicketServiceConfig{UserServiceURL: internalUser, Port: "8080/tcp"}.
-		StartContainer(_ctx, network.Name)
+		StartContainer(network.Name)
 
 	log.Println("ticket service running at: ", _ticketServiceURL)
 
@@ -76,34 +74,39 @@ type Ticket struct {
 }
 
 func Test_Integrations(t *testing.T) {
-	var createdUser User
+	var theUser User
 	t.Run("create and get a user", func(t *testing.T) {
-		resp, _ := http.Post(_userServiceURL+"/users", "application/json", jsonReader(User{Name: "berliner"}))
-		responseToStruct(resp, &createdUser)
-		assert.Equal(t, "berliner", createdUser.Name)
+		resp, _ := http.Post(
+			_userServiceURL+"/users",
+			"application/json",
+			jsonReader(User{Name: "berliner"}))
+
+		readResp(resp, &theUser)
+		assert.Equal(t, "berliner", theUser.Name)
 
 		var getUser User
-		resp, _ = http.Get(fmt.Sprintf("%s/users/%d", _userServiceURL, createdUser.ID))
-		responseToStruct(resp, &getUser)
-		assert.Equal(t, createdUser, getUser)
+		resp, _ = http.Get(fmt.Sprintf("%s/users/%d", _userServiceURL, theUser.ID))
+		readResp(resp, &getUser)
+		assert.Equal(t, theUser, getUser)
 	})
 
 	t.Run("create a ticket", func(t *testing.T) {
 		resp, _ := http.Post(
 			_ticketServiceURL+"/tickets",
 			"application/json",
-			jsonReader(TicketPost{Movie: "Berlin Syndrome", UserID: createdUser.ID}))
+			jsonReader(TicketPost{Movie: "Berlin Syndrome", UserID: theUser.ID}))
 		var ticket struct {
 			ID string `json:"id"`
 		}
-		responseToStruct(resp, &ticket)
+		readResp(resp, &ticket)
 
-		var getTicket Ticket
+		var gotTicket Ticket
 		resp, _ = http.Get(fmt.Sprintf("%s/tickets/%s", _ticketServiceURL, ticket.ID))
-		responseToStruct(resp, &getTicket)
-		assert.Equal(t, createdUser, getTicket.User)
-		assert.Equal(t, ticket.ID, getTicket.ID)
-		assert.Equal(t, "Berlin Syndrome", getTicket.Movie)
+		readResp(resp, &gotTicket)
+
+		assert.Equal(t, theUser, gotTicket.User)
+		assert.Equal(t, ticket.ID, gotTicket.ID)
+		assert.Equal(t, "Berlin Syndrome", gotTicket.Movie)
 	})
 }
 
@@ -115,7 +118,7 @@ func jsonReader(v interface{}) io.Reader {
 	return bytes.NewReader(b)
 }
 
-func responseToStruct(resp *http.Response, v interface{}) {
+func readResp(resp *http.Response, v interface{}) {
 	defer resp.Body.Close()
 	if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
 		panic(err)

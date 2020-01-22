@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+var ctx = context.Background()
+
 type PostgresConfig struct {
 	Password string
 	User     string
@@ -31,7 +33,7 @@ func (p PostgresConfig) urlFromPort(port nat.Port) string {
 	return fmt.Sprintf("postgres://%s:%s@localhost:%s/%s?sslmode=disable", p.User, p.Password, port.Port(), p.DB)
 }
 
-func (p PostgresConfig) StartContainer(ctx context.Context, networkName string) (internalURL, mappedURL string) {
+func (p PostgresConfig) StartContainer(networkName string) (internalURL, mappedURL string) {
 	container, err := tc.GenericContainer(ctx, tc.GenericContainerRequest{
 		ContainerRequest: tc.ContainerRequest{
 			Image:        "postgres",
@@ -53,7 +55,8 @@ func (p PostgresConfig) StartContainer(ctx context.Context, networkName string) 
 
 	mappedPort, err := container.MappedPort(ctx, p.Port)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("MappedPort ", err)
 	}
-	return strings.Replace(p.urlFromPort(p.Port), "@localhost:", "@user-service-postgres:", 1), p.urlFromPort(mappedPort)
+	return strings.Replace(p.urlFromPort(p.Port), "@localhost:", "@user-service-postgres:", 1),
+		p.urlFromPort(mappedPort)
 }
