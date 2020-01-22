@@ -42,7 +42,7 @@ func (t TicketServiceConfig) StartContainer(ctx context.Context, networkName str
 	if err != nil {
 		log.Fatal(err)
 	}
-	return fmt.Sprintf("http://ticket-service:%s", t.Port),
+	return fmt.Sprintf("http://ticket-service:%s", t.Port.Port()),
 		fmt.Sprintf("http://localhost:%s", mappedPort.Port())
 }
 

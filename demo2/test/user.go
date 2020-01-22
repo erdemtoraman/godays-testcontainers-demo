@@ -38,7 +38,7 @@ func (s UserServiceConfig) StartContainer(ctx context.Context, networkName strin
 	if err != nil {
 		log.Fatal(err)
 	}
-	return fmt.Sprintf("http://user-service:%s", s.Port),
+	return fmt.Sprintf("http://user-service:%s", s.Port.Port()),
 		fmt.Sprintf("http://localhost:%s", mappedPort.Port())
 }
 
