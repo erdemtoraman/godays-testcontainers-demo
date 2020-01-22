@@ -1,4 +1,4 @@
-package unit
+package demo1
 
 import "github.com/jmoiron/sqlx"
 
@@ -36,7 +36,11 @@ func (r *userRepo) GetAllUsers() (users []User, err error) {
 //noinspection ALL
 func runMigrations(conn *sqlx.DB) error {
 	_, err := conn.Exec(`
-		CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY,  name TEXT NOT NULL UNIQUE)
+		CREATE TABLE IF NOT EXISTS users 
+		(
+		    id   SERIAL PRIMARY KEY, 
+		    name TEXT NOT NULL UNIQUE
+		)
 	`)
 	return err
 }

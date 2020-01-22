@@ -17,12 +17,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	if _, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY,  name TEXT NOT NULL UNIQUE)"); err != nil {
+	_, err = db.Exec(`
+			CREATE TABLE IF NOT EXISTS users 
+			(id SERIAL PRIMARY KEY,  name TEXT NOT NULL UNIQUE)
+			`)
+	if err != nil {
 		log.Fatal(err)
 	}
 
 	fmt.Println("running service")
 	r := mux.NewRouter().StrictSlash(true)
+	r.NewRoute().Path("/health").Methods(http.MethodGet).HandlerFunc(api.Health)
 
 	r.NewRoute().Path("/users").Methods(http.MethodPost).HandlerFunc(api.PostUser(db))
 	r.NewRoute().Path("/users/{id:[0-9]+}").Methods(http.MethodGet).HandlerFunc(api.GetUser(db))

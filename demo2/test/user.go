@@ -13,7 +13,7 @@ import (
 
 type UserServiceConfig struct {
 	PostgresURL string
-	Port        string
+	Port        nat.Port
 }
 
 func (s UserServiceConfig) StartContainer(ctx context.Context, networkName string) (internalURL, mappedURL string) {
@@ -26,21 +26,22 @@ func (s UserServiceConfig) StartContainer(ctx context.Context, networkName strin
 				networkName: {"user-service"},
 			},
 			Env:          s.env(),
-			ExposedPorts: []string{s.Port},
-			WaitingFor:   wait.ForListeningPort(nat.Port(s.Port)),
+			ExposedPorts: []string{s.Port.Port()},
+			WaitingFor:   wait.ForListeningPort(s.Port),
 		},
 		Started: true,
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
-	mappedPort, err := container.MappedPort(ctx, nat.Port(s.Port))
+	mappedPort, err := container.MappedPort(ctx, s.Port)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return fmt.Sprintf("http://%s:%s", "user-service", s.Port), fmt.Sprintf("http://localhost:%s", mappedPort.Port())
+	return fmt.Sprintf("http://user-service:%s", s.Port),
+		fmt.Sprintf("http://localhost:%s", mappedPort.Port())
 }
 
 func (s UserServiceConfig) env() map[string]string {
-	return map[string]string{"POSTGRES_URL": s.PostgresURL, "PORT": s.Port}
+	return map[string]string{"POSTGRES_URL": s.PostgresURL, "PORT": s.Port.Port()}
 }

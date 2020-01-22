@@ -4,12 +4,12 @@ clean:
 
 
 test-parallel: clean
-	(echo 'make test-simple'; echo 'make test-e2e') | parallel -j 2
+	make test-simple & make test-e2e
 
 test-simple: clean
-	 cd unit && go test ./... && cd ..
+	 cd demo1 && go test ./... && cd ..
 test-e2e: clean
-	 cd integration/test && go test ./... && cd ../..
+	 cd demo2/test && go test ./... && cd ../..
 
 clean-network:
 	$(shell docker network rm $(shell docker network list -q) > /dev/null 2>&1 )
@@ -23,4 +23,4 @@ watch-network:
 	watch docker network list
 
 watch-container:
-	watch docker ps
+	watch docker ps --format \"{{.Image}} : {{.Ports}}\"

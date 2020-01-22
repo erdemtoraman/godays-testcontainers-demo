@@ -41,14 +41,17 @@ func TestMain(m *testing.M) {
 		Port:     "5432/tcp",
 	}
 
-	postgresInternal, mappedPostgres := postgresConfig.StartContainer(_ctx, network.Name)
+	postgresInternal, mappedPostgres := postgresConfig.
+		StartContainer(_ctx, network.Name)
 	log.Println("postgres running at: ", mappedPostgres)
 
-	internalUser, mappedUser := UserServiceConfig{PostgresURL: postgresInternal, Port: "8080"}.StartContainer(_ctx, network.Name)
+	internalUser, mappedUser := UserServiceConfig{PostgresURL: postgresInternal, Port: "8080/tcp"}.
+		StartContainer(_ctx, network.Name)
 
 	log.Println("user service running at: ", mappedUser)
 
-	_, _ticketServiceURL = TicketServiceConfig{UserServiceURL: internalUser, Port: "8080"}.StartContainer(_ctx, network.Name)
+	_, _ticketServiceURL = TicketServiceConfig{UserServiceURL: internalUser, Port: "8080/tcp"}.
+		StartContainer(_ctx, network.Name)
 
 	log.Println("ticket service running at: ", _ticketServiceURL)
 
@@ -89,7 +92,7 @@ func Test_Integrations(t *testing.T) {
 		resp, _ := http.Post(
 			_ticketServiceURL+"/tickets",
 			"application/json",
-			jsonReader(TicketPost{Movie: "dogs of berlin", UserID: createdUser.ID}))
+			jsonReader(TicketPost{Movie: "Berlin Syndrome", UserID: createdUser.ID}))
 		var ticket struct {
 			ID string `json:"id"`
 		}
@@ -100,7 +103,7 @@ func Test_Integrations(t *testing.T) {
 		responseToStruct(resp, &getTicket)
 		assert.Equal(t, createdUser, getTicket.User)
 		assert.Equal(t, ticket.ID, getTicket.ID)
-		assert.Equal(t, "dogs of berlin", getTicket.Movie)
+		assert.Equal(t, "Berlin Syndrome", getTicket.Movie)
 	})
 }
 

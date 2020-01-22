@@ -51,9 +51,9 @@ func (p PostgresConfig) StartContainer(ctx context.Context, networkName string) 
 		log.Fatal("start ", err)
 	}
 
-	mappedPort, err := container.MappedPort(ctx, nat.Port(p.Port))
+	mappedPort, err := container.MappedPort(ctx, p.Port)
 	if err != nil {
 		log.Fatal(err)
 	}
-	return strings.Replace(p.urlFromPort(nat.Port(p.Port)), "@localhost:", "@user-service-postgres:", 1), p.urlFromPort(mappedPort)
+	return strings.Replace(p.urlFromPort(p.Port), "@localhost:", "@user-service-postgres:", 1), p.urlFromPort(mappedPort)
 }
