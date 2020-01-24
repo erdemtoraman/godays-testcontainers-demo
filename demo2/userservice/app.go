@@ -17,6 +17,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// run migrations
 	_, err = db.Exec(`
 			CREATE TABLE IF NOT EXISTS users 
 			(id SERIAL PRIMARY KEY,  name TEXT NOT NULL UNIQUE)

@@ -24,3 +24,6 @@ watch-network:
 
 watch-container:
 	watch docker ps --format \"{{.Image}} : {{.Ports}}\"
+
+Watch-labels:
+	watch docker ps --format \"{{.Image}} : {{.Labels}}\"

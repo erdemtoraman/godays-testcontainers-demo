@@ -23,30 +23,33 @@ var (
 
 func TestMain(m *testing.M) {
 	log.Println("Starting postgres container...")
-	containerPort := nat.Port("5432/tcp")
-	log.Println("a")
+	postgresPort := nat.Port("5432/tcp")
 	postgres, err := tc.GenericContainer(context.Background(),
 		tc.GenericContainerRequest{
 			ContainerRequest: tc.ContainerRequest{
 				Image:        "postgres",
-				ExposedPorts: []string{containerPort.Port()},
+				ExposedPorts: []string{postgresPort.Port()},
 				Env: map[string]string{
 					"POSTGRES_PASSWORD": "pass",
 					"POSTGRES_USER":     "user",
 				},
-				WaitingFor: wait.ForListeningPort(containerPort),
+				WaitingFor: wait.ForAll(
+					wait.ForLog("database system is ready to accept connections"),
+					wait.ForListeningPort(postgresPort),
+				),
 			},
 			Started: true, // auto-start the container
 		})
 	if err != nil {
 		log.Fatal("start:", err)
 	}
-	mappedPort, err := postgres.MappedPort(context.Background(), containerPort)
+
+	hostPort, err := postgres.MappedPort(context.Background(), postgresPort)
 	if err != nil {
 		log.Fatal("map:", err)
 	}
 	postgresURLTemplate := "postgres://user:pass@localhost:%s?sslmode=disable"
-	postgresURL := fmt.Sprintf(postgresURLTemplate, mappedPort.Port())
+	postgresURL := fmt.Sprintf(postgresURLTemplate, hostPort.Port())
 	log.Printf("Postgres container started, running at:  %s\n", postgresURL)
 
 	_conn, err = sqlx.Connect("postgres", postgresURL)
@@ -62,22 +65,8 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestRepoImp_CreateUser(t *testing.T) {
-	truncateDB()
-
-	user, err := _repo.CreateUser("username")
-	require.NoError(t, err)
-	assert.Equal(t, "username", user.Name)
-	assert.NotZero(t, user.ID)
-
-	user, err = _repo.CreateUser("username")
-	assert.Error(t, err, "names are unique")
-
-}
-
-func TestRepoImp_GetUsers(t *testing.T) {
-	t.Run("get single user", func(t *testing.T) {
-		truncateDB()
+func TestRepoImp(t *testing.T) {
+	t.Run("create and get single user", func(t *testing.T) {
 		user, err := _repo.CreateUser("username")
 		require.NoError(t, err)
 
@@ -87,22 +76,12 @@ func TestRepoImp_GetUsers(t *testing.T) {
 	})
 
 	t.Run("get all users", func(t *testing.T) {
-		truncateDB()
-
 		for i := 0; i < 10; i++ {
 			_, err := _repo.CreateUser(strconv.Itoa(i))
 			require.NoError(t, err)
 		}
 		users, err := _repo.GetAllUsers()
 		require.NoError(t, err)
-		assert.Len(t, users, 10)
+		assert.Len(t, users, 11) // 10 + 1 previously
 	})
-
-}
-
-//noinspection SqlResolve
-func truncateDB() {
-	if _, err := _conn.Exec("TRUNCATE users"); err != nil {
-		log.Fatalf("Cannot clear db: %v", err)
-	}
 }

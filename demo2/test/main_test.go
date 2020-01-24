@@ -19,7 +19,10 @@ var _userServiceURL, _ticketServiceURL string
 func TestMain(m *testing.M) {
 	os.Chdir("..")
 
-	var network = tc.NetworkRequest{Name: "integration-test-network", Driver: "bridge"}
+	var network = tc.NetworkRequest{
+		Name:   "integration-test-network",
+		Driver: "bridge",
+	}
 
 	provider, err := tc.NewDockerProvider()
 	if err != nil {
